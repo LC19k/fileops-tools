@@ -8,12 +8,13 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     permissions:
       contents: read
       packages: write
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Log in to GHCR
@@ -23,9 +24,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push
+      - name: Extract version
+        id: version
+        run: |
+          # Use the short SHA as a version tag
+          echo "sha_tag=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+      - name: Build and push (latest + SHA tag)
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/fileops-tools:latest
+          tags: |
+            ghcr.io/lc19k/fileops-tools:latest
+            ghcr.io/lc19k/fileops-tools:${{ steps.version.outputs.sha_tag }}
+          labels: |
+            org.opencontainers.image.source=${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.version.outputs.sha_tag }}
